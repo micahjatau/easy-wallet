@@ -1,0 +1,36 @@
+{
+  "name": "expense-tracker",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "npm@11.7.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:web",
+    "dev:web": "turbo run dev --filter=@easy-ledger/web",
+    "dev:mobile": "turbo run dev --filter=@easy-ledger/mobile",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "preview": "npm run -w @easy-ledger/web preview",
+    "prepare": "husky || echo \"husky skipped (no .git)\"",
+    "test": "turbo run test",
+    "test:run": "turbo run test:run",
+    "test:coverage": "turbo run test:coverage --filter=@easy-ledger/web",
+    "verify": "turbo run verify",
+    "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
+    "release": "standard-version",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:patch": "standard-version --release-as patch",
+    "release:dry": "standard-version --dry-run"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.1",
+    "@commitlint/config-conventional": "^20.4.1",
+    "husky": "^9.1.7",
+    "standard-version": "^9.5.0",
+    "turbo": "^2.5.6"
+  }
+}

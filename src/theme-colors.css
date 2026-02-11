@@ -1,0 +1,57 @@
+:root {
+  /* Easy Ledger Light Theme */
+  --background: 246 248 246;
+  --background-elevated: 255 255 255;
+  --background-muted: 235 241 235;
+
+  --foreground: 15 23 42;
+  --foreground-muted: 71 85 105;
+  --foreground-subtle: 100 116 139;
+
+  --primary: 45 196 28;
+  --primary-hover: 20 184 75;
+  --primary-foreground: 16 34 21;
+
+  --border: 226 232 226;
+
+  --success: 45 196 28;
+  --success-background: 235 252 232;
+
+  --error: 239 68 68;
+  --error-background: 254 242 242;
+
+  --warning: 217 119 6;
+  --warning-background: 255 251 235;
+
+  --brand-forest: 15 66 41;
+  --brand-cream: 246 248 246;
+}
+
+.dark {
+  /* Easy Ledger Dark Theme */
+  --background: 16 34 21;
+  --background-elevated: 22 46 29;
+  --background-muted: 28 58 36;
+
+  --foreground: 255 255 255;
+  --foreground-muted: 148 163 184;
+  --foreground-subtle: 100 116 139;
+
+  --primary: 45 196 28;
+  --primary-hover: 20 184 75;
+  --primary-foreground: 16 34 21;
+
+  --border: 35 70 45;
+
+  --success: 45 196 28;
+  --success-background: 6 78 59;
+
+  --error: 248 113 113;
+  --error-background: 127 29 29;
+
+  --warning: 251 191 36;
+  --warning-background: 120 53 15;
+
+  --brand-forest: 15 66 41;
+  --brand-cream: 246 248 246;
+}

@@ -1,0 +1,19 @@
+module.exports = {
+  types: [
+    { type: 'feat', section: 'Added' },
+    { type: 'fix', section: 'Fixed' },
+    { type: 'perf', section: 'Changed' },
+    { type: 'refactor', section: 'Changed' },
+    { type: 'revert', section: 'Removed' },
+    { type: 'docs', section: 'Documentation', hidden: true },
+    { type: 'style', section: 'Style', hidden: true },
+    { type: 'test', section: 'Tests', hidden: true },
+    { type: 'chore', section: 'Maintenance', hidden: true },
+    { type: 'ci', section: 'CI', hidden: true },
+    { type: 'build', section: 'Build', hidden: true },
+  ],
+  releaseCommitMessageFormat: 'chore(release): {{currentTag}}',
+  skip: {
+    tag: false,
+  },
+}

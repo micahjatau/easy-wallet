@@ -1,0 +1,12 @@
+{
+  "name": "@easy-ledger/core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./currency": "./src/currency.js",
+    "./ledgerMath": "./src/ledgerMath.js"
+  }
+}

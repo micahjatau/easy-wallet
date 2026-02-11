@@ -1,0 +1,18 @@
+{
+  "name": "@easy-ledger/ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./tamagui.config": "./src/tamagui.config.js"
+  },
+  "dependencies": {
+    "@tamagui/core": "^1.132.18"
+  },
+  "peerDependencies": {
+    "react": "^19.1.0",
+    "react-native": "0.81.5"
+  }
+}

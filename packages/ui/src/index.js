@@ -1,0 +1,5 @@
+export { default as tamaguiConfig } from './tamagui.config.js'
+export { Button } from './components/Button.jsx'
+export { Card } from './components/Card.jsx'
+export { Screen } from './components/Screen.jsx'
+export { Text } from './components/Text.jsx'
