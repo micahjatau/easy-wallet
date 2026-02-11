@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Easy Ledger Mobile",
-    "slug": "easy-ledger-mobile",
+    "name": "Easy Wallet Mobile",
+    "slug": "easy-wallet-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

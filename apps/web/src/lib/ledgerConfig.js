@@ -1,5 +1,5 @@
-export const APP_NAME = 'Easy Ledger'
-export const APP_SLUG = 'easy-ledger'
+export const APP_NAME = 'Easy Wallet'
+export const APP_SLUG = 'easy-wallet'
 export const SCHEMA_VERSION = 2
 export const STORAGE_KEY = `${APP_SLUG}-state`
 export const LEGACY_STORAGE_KEY = 'expense-tracker:v1'

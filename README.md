@@ -1,4 +1,4 @@
-# Easy Ledger
+# Easy Wallet
 
 A local-first, multi-currency expense tracker with a calm editorial dashboard and category insights.
 

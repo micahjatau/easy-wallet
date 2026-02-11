@@ -32,7 +32,7 @@ export default function DataExport({ state, lastExportAt, onExport }) {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `easy-ledger-export-${formatLocalYmd(new Date())}.json`
+      link.download = `easy-wallet-export-${formatLocalYmd(new Date())}.json`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
