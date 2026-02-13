@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { getAccountId } from './useStorageState.js'
+import { parseDateLocal, startOfDay } from '../lib/dateValidation.js'
 
 export const useDataManagementActions = ({
   profile,
@@ -105,9 +106,14 @@ export const useDataManagementActions = ({
     async (daysToKeep = 30) => {
       const cutoffDate = new Date()
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
+      const cutoffTime = startOfDay(cutoffDate).getTime()
 
       const transactionsToKeep = transactions.filter(
-        (transaction) => new Date(transaction.date) >= cutoffDate || transaction.isDeleted,
+        (transaction) => {
+          const txDate = parseDateLocal(transaction.date)
+          if (!txDate) return true // Keep if date invalid
+          return txDate.getTime() >= cutoffTime || transaction.isDeleted
+        },
       )
       const deletedCount = transactions.length - transactionsToKeep.length
 

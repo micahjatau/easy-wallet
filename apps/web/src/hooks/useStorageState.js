@@ -11,6 +11,8 @@ import {
   normalizeCurrency,
   sanitizeCurrency,
 } from '@easy-ledger/core'
+import { sanitizeDate } from '../lib/dateValidation.js'
+import { dedupeTransactions } from '../lib/deduplication.js'
 
 const toYmdString = (date) => {
   const year = date.getFullYear()
@@ -213,9 +215,8 @@ const sanitizeTransaction = (rawTransaction, settings, accounts) => {
     typeof rawTransaction.date === 'string' ? rawTransaction.date : ''
   const createdAtValue = Number(rawTransaction.createdAt)
   const createdAt = Number.isFinite(createdAtValue) ? createdAtValue : Date.now()
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
-    ? rawDate
-    : toYmdString(new Date(createdAt))
+  // Use strict date validation (rejects invalid calendar dates like Feb 31)
+  const date = sanitizeDate(rawDate) ?? toYmdString(new Date(createdAt))
   const rawId =
     typeof rawTransaction.id === 'string' ||
     typeof rawTransaction.id === 'number'
@@ -260,9 +261,11 @@ const sanitizeTransaction = (rawTransaction, settings, accounts) => {
 
 export const sanitizeTransactions = (rawTransactions, settings, accounts) => {
   if (!Array.isArray(rawTransactions)) return []
-  return rawTransactions
+  const sanitized = rawTransactions
     .map((transaction) => sanitizeTransaction(transaction, settings, accounts))
     .filter(Boolean)
+  // Deduplicate by ID, keeping newest by updatedAt
+  return dedupeTransactions(sanitized)
 }
 
 const getDefaultState = () => {

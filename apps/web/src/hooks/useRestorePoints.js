@@ -241,10 +241,39 @@ const normalizeTimestamp = (value) => {
   return null
 }
 
+/**
+ * Compute SHA-256 checksum with graceful degradation
+ * Falls back to simple hash when crypto.subtle is unavailable
+ */
 async function computeChecksum(str) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(str)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  try {
+    // Try crypto.subtle first (secure, preferred)
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const encoder = new TextEncoder()
+      const data = encoder.encode(str)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+    }
+  } catch (err) {
+    console.warn('crypto.subtle failed, using fallback checksum:', err)
+  }
+
+  // Fallback: Simple hash for private browsing/HTTP contexts
+  // Not cryptographically secure, but sufficient for integrity checking
+  return computeFallbackChecksum(str)
+}
+
+/**
+ * Simple hash function for environments without crypto.subtle
+ * Used in private browsing mode or non-secure contexts
+ */
+function computeFallbackChecksum(str) {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return `fb_${Math.abs(hash).toString(16).padStart(8, '0')}`
 }

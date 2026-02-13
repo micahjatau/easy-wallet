@@ -110,21 +110,9 @@ export const useVersioningSyncActions = ({
   const handleManualSync = useCallback(
     async () => {
       const result = await triggerSync({ transactions, accounts, settings })
-      if (result.error) {
-        const errorContext =
-          result.errorCode === 'permission' ? 'Authentication error' : 'Backup failed'
-        showError(`${errorContext}: ${result.error}`)
-
-        if (result.action === 'retry') {
-          info('You can try again when the connection improves.')
-        } else if (result.action === 'signin') {
-          info('Please sign in again to continue backing up your data.')
-        }
-      } else if (result.conflicts) {
-        info(
-          `${result.conflicts.length} conflict(s) detected. Please resolve in Cloud Backup section.`,
-        )
-      } else if (result.remoteData) {
+      
+      // Priority 1: Remote data available (restore from cloud immediately)
+      if (result.remoteData) {
         const sanitizedState = sanitizeIncomingState(result.remoteData)
         if (!sanitizedState) {
           showError('Backup restore failed: invalid cloud payload.')
@@ -146,7 +134,33 @@ export const useVersioningSyncActions = ({
           })
         }
         success('Backup restored from cloud')
-      } else if (result.uploaded) {
+        return
+      }
+      
+      // Priority 2: Conflicts detected
+      if (result.conflicts) {
+        info(
+          `${result.conflicts.length} conflict(s) detected. Please resolve in Cloud Backup section.`,
+        )
+        return
+      }
+      
+      // Priority 3: Error with context
+      if (result.error) {
+        const errorContext =
+          result.errorCode === 'permission' ? 'Authentication error' : 'Backup failed'
+        showError(`${errorContext}: ${result.error}`)
+
+        if (result.action === 'retry') {
+          info('You can try again when the connection improves.')
+        } else if (result.action === 'signin') {
+          info('Please sign in again to continue backing up your data.')
+        }
+        return
+      }
+      
+      // Success: uploaded
+      if (result.uploaded) {
         success('Backup saved to cloud')
       }
     },
@@ -168,7 +182,24 @@ export const useVersioningSyncActions = ({
   const handleResolveConflict = useCallback(
     async (conflictId, resolution) => {
       setIsResolvingConflict(true)
-      const result = await resolveConflict(conflictId, resolution)
+      
+      // Provide callbacks for local version conflict resolution
+      const options = {
+        onApplyRemote: (remoteData) => {
+          const sanitizedState = sanitizeIncomingState(remoteData)
+          if (sanitizedState) {
+            setTransactions(sanitizedState.transactions)
+            setAccounts(sanitizedState.accounts)
+            setSettings(sanitizedState.settings)
+          }
+        },
+        onKeepLocal: () => {
+          // Local changes are kept; next sync will push them
+          info('Local changes will be synced on next backup')
+        },
+      }
+      
+      const result = await resolveConflict(conflictId, resolution, options)
       setIsResolvingConflict(false)
       if (result.success) {
         success('Conflict resolved successfully')
@@ -177,7 +208,7 @@ export const useVersioningSyncActions = ({
       }
       return result
     },
-    [resolveConflict, setIsResolvingConflict, success, showError],
+    [resolveConflict, setIsResolvingConflict, success, showError, info, setTransactions, setAccounts, setSettings],
   )
 
   return {

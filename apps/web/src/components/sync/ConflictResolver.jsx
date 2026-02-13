@@ -1,5 +1,10 @@
 import { useState } from 'react'
 
+const CONFLICT_KINDS = {
+  REMOTE: 'remote_conflict',
+  LOCAL_VERSION: 'local_version_conflict',
+}
+
 const formatDate = (timestamp) => {
   if (!timestamp) return 'Unknown'
   const date = new Date(timestamp)
@@ -43,37 +48,55 @@ export default function ConflictResolver({ conflicts, onResolve, isResolving }) 
       </div>
 
       <div className="space-y-2 max-h-64 overflow-y-auto">
-        {conflicts.map((conflict) => (
-          <button
-            type="button"
-            key={conflict.id}
-            onClick={() => {
-              setSelectedConflict(selectedConflict?.id === conflict.id ? null : conflict)
-              setResolution(null)
-            }}
-            className={`w-full text-left p-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-error/30 ${
-              selectedConflict?.id === conflict.id
-                ? 'border-error bg-error-background'
-                : 'border-border bg-background-elevated hover:bg-background-muted/40'
-            }`}
-            aria-expanded={selectedConflict?.id === conflict.id}
-            aria-controls={`conflict-panel-${conflict.id}`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground text-sm">
-                  {conflict.entity_type}: {conflict.entity_id}
-                </p>
-                <p className="text-xs text-foreground-subtle">
-                  Detected: {formatDate(conflict.detected_at)}
-                </p>
+        {conflicts.map((conflict) => {
+          const isRemote = conflict.kind === CONFLICT_KINDS.REMOTE
+          const title = isRemote && conflict.entity_type && conflict.entity_id
+            ? `${conflict.entity_type}: ${conflict.entity_id}`
+            : isRemote
+              ? 'Remote Conflict'
+              : 'Version Mismatch'
+
+          return (
+            <button
+              type="button"
+              key={conflict.id}
+              onClick={() => {
+                setSelectedConflict(selectedConflict?.id === conflict.id ? null : conflict)
+                setResolution(null)
+              }}
+              className={`w-full text-left p-3 rounded-lg border transition-colors focus:outline-none focus:ring-2 focus:ring-error/30 ${
+                selectedConflict?.id === conflict.id
+                  ? 'border-error bg-error-background'
+                  : 'border-border bg-background-elevated hover:bg-background-muted/40'
+              }`}
+              aria-expanded={selectedConflict?.id === conflict.id}
+              aria-controls={`conflict-panel-${conflict.id}`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground text-sm">
+                    {title}
+                  </p>
+                  <p className="text-xs text-foreground-subtle">
+                    Detected: {formatDate(conflict.detected_at || conflict.detectedAt)}
+                  </p>
+                  {!isRemote && (
+                    <p className="text-xs text-warning">
+                      Local v{conflict.local_version ?? conflict.localVersion ?? '?'} vs Remote v{conflict.remote_version ?? conflict.remoteVersion ?? '?'}
+                    </p>
+                  )}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  isRemote
+                    ? 'bg-error/20 text-error'
+                    : 'bg-warning/20 text-warning'
+                }`}>
+                  {isRemote ? 'Remote Conflict' : 'Version Mismatch'}
+                </span>
               </div>
-              <span className="text-xs px-2 py-1 rounded-full bg-error/20 text-error font-medium">
-                Conflict
-              </span>
-            </div>
-          </button>
-        ))}
+            </button>
+          )
+        })}
       </div>
 
       {selectedConflict && (
@@ -99,21 +122,33 @@ export default function ConflictResolver({ conflicts, onResolve, isResolving }) 
             <div className="rounded-lg border border-border p-3 bg-background-elevated">
               <p className="text-xs font-medium text-foreground-muted mb-2">Local (This Device)</p>
               <p className="text-xs text-foreground-subtle mb-2">
-                Modified: {formatDate(selectedConflict.local_updated_at)}
+                Modified: {formatDate(selectedConflict.local_updated_at || selectedConflict.localUpdatedAt)}
               </p>
-              <pre className="text-xs text-foreground bg-background-muted/40 p-2 rounded overflow-x-auto max-h-32">
-                {JSON.stringify(selectedConflict.local_data, null, 2)}
-              </pre>
+              {selectedConflict.local_data || selectedConflict.localData ? (
+                <pre className="text-xs text-foreground bg-background-muted/40 p-2 rounded overflow-x-auto max-h-32">
+                  {JSON.stringify(selectedConflict.local_data || selectedConflict.localData, null, 2)}
+                </pre>
+              ) : (
+                <p className="text-xs text-foreground-muted italic">
+                  Local data unavailable
+                </p>
+              )}
             </div>
 
             <div className="rounded-lg border border-primary/30 p-3 bg-primary/10">
               <p className="text-xs font-medium text-primary mb-2">Remote (Cloud)</p>
               <p className="text-xs text-foreground-subtle mb-2">
-                Modified: {formatDate(selectedConflict.remote_updated_at)}
+                Modified: {formatDate(selectedConflict.remote_updated_at || selectedConflict.remoteUpdatedAt)}
               </p>
-              <pre className="text-xs text-foreground bg-primary/15 p-2 rounded overflow-x-auto max-h-32">
-                {JSON.stringify(selectedConflict.remote_data, null, 2)}
-              </pre>
+              {selectedConflict.remote_data || selectedConflict.remoteData ? (
+                <pre className="text-xs text-foreground bg-primary/15 p-2 rounded overflow-x-auto max-h-32">
+                  {JSON.stringify(selectedConflict.remote_data || selectedConflict.remoteData, null, 2)}
+                </pre>
+              ) : (
+                <p className="text-xs text-foreground-muted italic">
+                  Remote data unavailable
+                </p>
+              )}
             </div>
           </div>
 

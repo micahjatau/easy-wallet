@@ -28,6 +28,13 @@ const SYNC_CONFIG = {
   retryDelay: 5000, // 5 seconds
 }
 
+const CONFLICT_KINDS = {
+  REMOTE: 'remote_conflict',
+  LOCAL_VERSION: 'local_version_conflict',
+}
+
+const LOCAL_CONFLICTS_STORAGE_KEY = 'easy-ledger-pending-conflicts'
+
 export const shouldCreateConflict = ({
   remoteVersion,
   localVersion,
@@ -77,6 +84,14 @@ export const useSync = (
     }
   }, [])
 
+  // Load persisted local conflicts on mount or when userId changes
+  useEffect(() => {
+    const persisted = loadPersistedLocalConflicts(userId)
+    if (persisted.length > 0) {
+      setConflicts((prev) => mergeConflicts(persisted, prev))
+    }
+  }, [userId])
+
   const lastSyncAt = syncedAt || null
 
   const checkConflicts = useCallback(async () => {
@@ -95,12 +110,40 @@ export const useSync = (
       const data = snapshot.docs.map((docSnap) => {
         const conflict = docSnap.data()
         return {
+          kind: CONFLICT_KINDS.REMOTE,
           id: docSnap.id,
-          ...conflict,
+          remoteConflictId: docSnap.id,
+          userId: conflict.user_id,
+          entityType: conflict.entity_type || null,
+          entityId: conflict.entity_id || null,
+          detectedAt: normalizeTimestamp(conflict.detected_at),
+          resolvedAt: normalizeTimestamp(conflict.resolved_at),
+          localUpdatedAt: normalizeTimestamp(conflict.local_updated_at),
+          remoteUpdatedAt: normalizeTimestamp(conflict.remote_updated_at),
+          localVersion: Number.isFinite(Number(conflict.local_version))
+            ? Number(conflict.local_version)
+            : null,
+          remoteVersion: Number.isFinite(Number(conflict.remote_version))
+            ? Number(conflict.remote_version)
+            : null,
+          localData: conflict.local_data || null,
+          remoteData: conflict.remote_data || null,
+          // Keep legacy fields for backwards compatibility
+          user_id: conflict.user_id,
+          entity_type: conflict.entity_type || null,
+          entity_id: conflict.entity_id || null,
           detected_at: normalizeTimestamp(conflict.detected_at),
           resolved_at: normalizeTimestamp(conflict.resolved_at),
           local_updated_at: normalizeTimestamp(conflict.local_updated_at),
           remote_updated_at: normalizeTimestamp(conflict.remote_updated_at),
+          local_version: Number.isFinite(Number(conflict.local_version))
+            ? Number(conflict.local_version)
+            : null,
+          remote_version: Number.isFinite(Number(conflict.remote_version))
+            ? Number(conflict.remote_version)
+            : null,
+          local_data: conflict.local_data || null,
+          remote_data: conflict.remote_data || null,
         }
       })
 
@@ -115,27 +158,48 @@ export const useSync = (
     }
   }, [userId])
 
-  const resolveConflict = useCallback(async (conflictId, resolution) => {
+  const resolveConflict = useCallback(async (conflictId, resolution, options = {}) => {
+    const conflict = conflicts.find((entry) => entry.id === conflictId)
+    if (!conflict) {
+      return { error: 'Conflict not found', errorCode: 'not_found' }
+    }
+
+    // Handle local version conflicts in-memory
+    if (conflict.kind === CONFLICT_KINDS.LOCAL_VERSION) {
+      if (resolution === 'remote' && conflict.remoteData) {
+        options.onApplyRemote?.(conflict.remoteData)
+      }
+      if (resolution === 'local') {
+        options.onKeepLocal?.()
+      }
+
+      setConflicts((prev) => prev.filter((entry) => entry.id !== conflictId))
+      removePersistedLocalConflict(conflictId, userId)
+      return { success: true }
+    }
+
+    // Handle remote conflicts via Firestore
     if (!firebaseDb) return { error: 'Firebase not configured' }
 
     try {
-      const conflictRef = doc(firebaseDb, 'conflicts', conflictId)
+      const remoteConflictId = conflict.remoteConflictId || conflict.id
+      const conflictRef = doc(firebaseDb, 'conflicts', remoteConflictId)
       await updateDoc(conflictRef, {
         resolution,
         resolved_at: new Date().toISOString(),
       })
 
-      setConflicts((prev) => prev.filter((c) => c.id !== conflictId))
+      setConflicts((prev) => prev.filter((entry) => entry.id !== conflictId))
       return { success: true }
     } catch (err) {
       const errorInfo = categorizeError(err)
-      return { 
+      return {
         error: errorInfo.message,
         errorCode: errorInfo.code,
         action: errorInfo.action,
       }
     }
-  }, [])
+  }, [conflicts, userId])
 
   const syncData = useCallback(async (localState, options = {}) => {
     if (!userId || !isOnline) {
@@ -154,7 +218,12 @@ export const useSync = (
       const conflictsResult = await checkConflicts()
       
       if (conflictsResult.data && conflictsResult.data.length > 0) {
-        setConflicts(conflictsResult.data)
+        setConflicts((prev) => {
+          const localOnly = prev.filter(
+            (conflict) => conflict.kind === CONFLICT_KINDS.LOCAL_VERSION,
+          )
+          return mergeConflicts(conflictsResult.data, localOnly)
+        })
         setSyncState(SYNC_STATES.CONFLICT)
         return { conflicts: conflictsResult.data }
       }
@@ -180,19 +249,20 @@ export const useSync = (
           remoteUpdatedAt,
           localSyncedAt: lastSynced,
         })) {
-          const conflict = {
-            id: `conflict-${Date.now()}`,
-            user_id: userId,
-            detected_at: now,
-            local_updated_at: lastSynced,
-            remote_updated_at: remoteUpdatedAt,
-            local_version: localVersion,
-            remote_version: Number.isFinite(remoteVersion) ? remoteVersion : null,
-            resolved_at: null,
-          }
+          const conflict = buildLocalVersionConflict({
+            userId,
+            now,
+            localUpdatedAt: lastSynced,
+            remoteUpdatedAt,
+            localVersion,
+            remoteVersion: Number.isFinite(remoteVersion) ? remoteVersion : null,
+            localData: localState,
+            remoteData: remoteData?.state_json,
+          })
+          persistLocalConflict(conflict)
           setConflicts((prev) => [conflict, ...prev])
           setSyncState(SYNC_STATES.CONFLICT)
-          return { 
+          return {
             error: 'Data has been modified on another device',
             conflict: true,
             remoteData: remoteData?.state_json,
@@ -294,6 +364,7 @@ export const useSync = (
       queueChange,
       checkConflicts,
       SYNC_STATES,
+      CONFLICT_KINDS,
     }),
     [
       syncState,
@@ -324,4 +395,99 @@ async function computeChecksum(str) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+const buildLocalVersionConflict = ({
+  userId,
+  now,
+  localUpdatedAt,
+  remoteUpdatedAt,
+  localVersion,
+  remoteVersion,
+  localData,
+  remoteData,
+}) => ({
+  kind: CONFLICT_KINDS.LOCAL_VERSION,
+  id: `local_conflict_${Date.now()}`,
+  userId,
+  detectedAt: now,
+  resolvedAt: null,
+  localUpdatedAt,
+  remoteUpdatedAt,
+  localVersion,
+  remoteVersion,
+  localData,
+  remoteData,
+  reason: 'version_mismatch',
+  // Legacy fields for backwards compatibility
+  user_id: userId,
+  detected_at: now,
+  resolved_at: null,
+  local_updated_at: localUpdatedAt,
+  remote_updated_at: remoteUpdatedAt,
+  local_version: localVersion,
+  remote_version: remoteVersion,
+  local_data: localData,
+  remote_data: remoteData,
+})
+
+const mergeConflicts = (incoming, existing) => {
+  const merged = new Map()
+  ;[...(incoming || []), ...(existing || [])].forEach((conflict) => {
+    if (!conflict?.id) return
+    merged.set(conflict.id, conflict)
+  })
+  return Array.from(merged.values())
+}
+
+const loadPersistedLocalConflicts = (userId) => {
+  if (!userId || typeof window === 'undefined') return []
+
+  try {
+    const raw = localStorage.getItem(LOCAL_CONFLICTS_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((conflict) => {
+      if (!conflict || typeof conflict !== 'object') return false
+      if (conflict.kind !== CONFLICT_KINDS.LOCAL_VERSION) return false
+      return conflict.userId === userId || conflict.user_id === userId
+    })
+  } catch {
+    return []
+  }
+}
+
+const persistLocalConflict = (conflict) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    const raw = localStorage.getItem(LOCAL_CONFLICTS_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    const existing = Array.isArray(parsed) ? parsed : []
+    const next = mergeConflicts(existing, [conflict])
+    localStorage.setItem(LOCAL_CONFLICTS_STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // ignore persistence errors
+  }
+}
+
+const removePersistedLocalConflict = (conflictId, userId) => {
+  if (!conflictId || !userId || typeof window === 'undefined') return
+
+  try {
+    const raw = localStorage.getItem(LOCAL_CONFLICTS_STORAGE_KEY)
+    if (!raw) return
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return
+    const filtered = parsed.filter((conflict) => {
+      if (!conflict || typeof conflict !== 'object') return false
+      const conflictUserId = conflict.userId || conflict.user_id
+      if (conflictUserId !== userId) return true
+      return conflict.id !== conflictId
+    })
+    localStorage.setItem(LOCAL_CONFLICTS_STORAGE_KEY, JSON.stringify(filtered))
+  } catch {
+    // ignore persistence errors
+  }
 }

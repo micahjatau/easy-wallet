@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { filterTransactions, isWithinRange } from '@easy-ledger/core'
+import { parseDateLocal } from '../lib/dateValidation.js'
 
 export const useActivityData = ({
   transactions,
@@ -57,8 +58,8 @@ export const useActivityData = ({
     }
 
     return result.sort((a, b) => {
-      const dateA = new Date(a.date).getTime()
-      const dateB = new Date(b.date).getTime()
+      const dateA = parseDateLocal(a.date)?.getTime() || 0
+      const dateB = parseDateLocal(b.date)?.getTime() || 0
       if (dateA !== dateB) return dateB - dateA
       return (b.createdAt || 0) - (a.createdAt || 0)
     })
