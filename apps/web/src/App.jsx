@@ -56,7 +56,7 @@ function AppInner() {
   }
 
   const defaultCustomDates = getDefaultCustomDates()
-  const { profileId, profile, user, deviceId } = useAuthContext()
+  const { profileId, profile, user, deviceId, logout } = useAuthContext()
   const { storageError, reportStorageError } = useStorageError()
   const {
     transactions,
@@ -536,6 +536,7 @@ function AppInner() {
         isDarkMode,
         activeView,
         handleSetView,
+        toggleDarkMode,
       }}
       header={{
         APP_NAME,
@@ -551,6 +552,8 @@ function AppInner() {
         isOnline,
         handleManualSync,
         SYNC_STATES,
+        profile: user,
+        onLogout: logout,
       }}
       deleteBanner={{
         deleteBanner,
@@ -600,7 +603,15 @@ function AppInner() {
       }}
       tools={{
         desktopToolsSections,
+        mobileToolsSections,
         isDarkMode,
+        accountsPayload: toolsPayload.accountsPayload,
+        categoriesPayload: toolsPayload.categoriesPayload,
+        importPayload: toolsPayload.importPayload,
+        currencyPayload: toolsPayload.currencyPayload,
+        privacyPayload: toolsPayload.privacyPayload,
+        versioningPayload: toolsPayload.versioningPayload,
+        syncPayload: toolsPayload.syncPayload,
       }}
       mobile={{
         showActivity,
@@ -647,6 +658,7 @@ function AppInner() {
         setShowBaseCurrencyDialog,
         setPendingBaseCurrency,
       }}
+      onAddTransaction={() => handleSetView('new')}
     />
   )
 }

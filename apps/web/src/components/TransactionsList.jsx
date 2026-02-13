@@ -15,7 +15,8 @@ const TransactionsList = ({
   emptyBody,
   className = '',
 }) => {
-  if (transactions.length === 0) {
+  // Guard against undefined/null transactions
+  if (!transactions || transactions.length === 0) {
     return <EmptyState title={emptyTitle} body={emptyBody} />
   }
 

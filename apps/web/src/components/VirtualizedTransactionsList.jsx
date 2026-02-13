@@ -48,7 +48,8 @@ const VirtualizedTransactionsList = ({
     )
   }, [transactions, settings, accountNameById, getCategoryAccent, onEdit, onDelete, onRestore, variant])
 
-  if (transactions.length === 0) {
+  // Guard against undefined/null transactions
+  if (!transactions || transactions.length === 0) {
     return <EmptyState title={emptyTitle} body={emptyBody} />
   }
 

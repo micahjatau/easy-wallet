@@ -50,7 +50,7 @@ const Activity = ({
             </div>
             {showCount && (
               <span className="text-xs text-foreground-muted">
-                {filteredTransactions.length}
+                {filteredTransactions?.length ?? 0}
               </span>
             )}
           </div>
