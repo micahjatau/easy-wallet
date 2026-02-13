@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { id: 'transactions', icon: 'receipt_long', label: 'Transactions', path: '/transactions' },
   { id: 'tools', icon: 'construction', label: 'Tools', path: '/tools' },
   { id: 'settings', icon: 'settings', label: 'Settings', path: '/settings' },
+  { id: 'support', icon: 'help', label: 'Support', path: '/support' },
 ]
 
 const SidebarItem = memo(function SidebarItem({

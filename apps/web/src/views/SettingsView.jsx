@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import PrivacySettings from '../components/privacy/PrivacySettings.jsx'
 import SyncTools from '../components/tools/SyncTools.jsx'
 import VersioningTools from '../components/tools/VersioningTools.jsx'
@@ -270,6 +271,15 @@ const SettingsView = memo(function SettingsView({
                   </p>
                 </div>
                 <div className="pt-2">
+                  <Link
+                    to="/support"
+                    className="mb-2 inline-flex items-center gap-2 text-primary hover:underline"
+                  >
+                    <span className="material-symbols-outlined">help</span>
+                    Get Help / Report Issue
+                  </Link>
+                </div>
+                <div>
                   <a
                     href="https://github.com/micahjatau/easy-wallet"
                     target="_blank"

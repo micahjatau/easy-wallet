@@ -13,6 +13,7 @@ import DashboardView from './DashboardView.jsx'
 import TransactionsView from './TransactionsView.jsx'
 import ToolsView from './ToolsView.jsx'
 import SettingsView from './SettingsView.jsx'
+import SupportView from './SupportView.jsx'
 
 // Page transition wrapper component
 const PageTransition = memo(function PageTransition({ children }) {
@@ -183,6 +184,14 @@ const SettingsPage = memo(function SettingsPage({ layout, header, dialog, toolsP
   )
 })
 
+const SupportPage = memo(function SupportPage() {
+  return (
+    <PageTransition>
+      <SupportView />
+    </PageTransition>
+  )
+})
+
 const AppShellView = ({
   layout,
   header,
@@ -271,6 +280,7 @@ const AppShellView = ({
               path="/settings" 
               element={<SettingsPage layout={layout} header={header} dialog={dialog} toolsPayload={tools} />} 
             />
+            <Route path="/support" element={<SupportPage />} />
           </Routes>
         </AnimatePresence>
 
