@@ -1,5 +1,7 @@
 import { memo, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { toBaseAmount } from '@easy-ledger/core'
+import { parseDateLocal } from '../lib/dateValidation.js'
 import { formatMoney } from '../lib/formatters.js'
 import EmptyState from '../components/EmptyState.jsx'
 import ProfileSwitcher from '../components/auth/ProfileSwitcher.jsx'
@@ -7,15 +9,21 @@ import { APP_NAME } from '../lib/ledgerConfig.js'
 
 // Stat Card Component
 const StatCard = memo(function StatCard({ title, amount, currency, icon, trend }) {
+  const hasTrend = Number.isFinite(trend)
+
   return (
     <div className="rounded-2xl border border-border bg-background-elevated p-6 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <span className="material-symbols-outlined text-2xl text-foreground-muted">
           {icon}
         </span>
-        {trend && (
+        {hasTrend && (
           <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-            trend > 0 ? 'bg-success-background text-success' : 'bg-error-background text-error'
+            trend > 0
+              ? 'bg-success-background text-success'
+              : trend < 0
+                ? 'bg-error-background text-error'
+                : 'bg-background-muted text-foreground-muted'
           }`}>
             {trend > 0 ? '+' : ''}{trend}%
           </span>
@@ -64,8 +72,9 @@ const DashboardView = memo(function DashboardView({
   totals,
   baseCurrency,
   filteredTransactions,
+  transactions,
   accounts,
-  _settings,
+  settings,
   _onEdit,
   _onDelete,
   _onRestore,
@@ -91,10 +100,68 @@ const DashboardView = memo(function DashboardView({
       .slice(0, 5)
   }, [filteredTransactions])
 
-  // Calculate trends (mock data for now - would compare to previous period)
-  const incomeTrend = 12
-  const expenseTrend = -5
-  const netTrend = 8
+  const { incomeTrend, expenseTrend, netTrend } = useMemo(() => {
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return { incomeTrend: null, expenseTrend: null, netTrend: null }
+    }
+
+    const now = new Date()
+    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const currentEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const previousEnd = currentStart
+
+    const totalsByPeriod = transactions.reduce(
+      (accumulator, transaction) => {
+        if (!transaction || transaction.isDeleted) return accumulator
+
+        const txDate = parseDateLocal(transaction.date)
+        if (!txDate) return accumulator
+
+        const baseAmount = toBaseAmount(
+          Number(transaction.amount),
+          transaction.currency,
+          settings?.baseCurrency,
+          settings?.rates || {},
+        )
+        if (!Number.isFinite(baseAmount)) return accumulator
+
+        const isCurrent = txDate >= currentStart && txDate < currentEnd
+        const isPrevious = txDate >= previousStart && txDate < previousEnd
+        if (!isCurrent && !isPrevious) return accumulator
+
+        const key = isCurrent ? 'current' : 'previous'
+        if (transaction.type === 'income') {
+          accumulator[key].income += baseAmount
+        } else {
+          accumulator[key].expense += baseAmount
+        }
+
+        return accumulator
+      },
+      {
+        current: { income: 0, expense: 0 },
+        previous: { income: 0, expense: 0 },
+      },
+    )
+
+    const currentNet = totalsByPeriod.current.income - totalsByPeriod.current.expense
+    const previousNet = totalsByPeriod.previous.income - totalsByPeriod.previous.expense
+
+    const getChange = (current, previous) => {
+      if (!Number.isFinite(previous) || previous === 0) {
+        if (!Number.isFinite(current) || current === 0) return 0
+        return 100
+      }
+      return Math.round(((current - previous) / Math.abs(previous)) * 100)
+    }
+
+    return {
+      incomeTrend: getChange(totalsByPeriod.current.income, totalsByPeriod.previous.income),
+      expenseTrend: getChange(totalsByPeriod.current.expense, totalsByPeriod.previous.expense),
+      netTrend: getChange(currentNet, previousNet),
+    }
+  }, [transactions, settings?.baseCurrency, settings?.rates])
 
   return (
     <div className="space-y-6">

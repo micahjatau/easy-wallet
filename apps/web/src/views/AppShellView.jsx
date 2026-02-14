@@ -38,6 +38,7 @@ const DashboardPage = memo(function DashboardPage({ dashboard, activity, dialog 
         totals={dashboard?.totals}
         baseCurrency={dialog?.settings?.baseCurrency}
         filteredTransactions={activity?.filteredTransactions}
+        transactions={dashboard?.transactions}
         settings={dialog?.settings}
         accounts={dialog?.accounts}
         onEdit={activity?.handleEdit}
