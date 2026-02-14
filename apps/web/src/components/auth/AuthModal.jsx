@@ -1,16 +1,18 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuthContext } from '../../contexts/useAuthContext.js'
 import { useDialogA11y } from '../../hooks/useDialogA11y.js'
 import PasswordInput from './PasswordInput.jsx'
 
-export default function AuthModal({ isOpen, onClose, onSuccess }) {
+export default function AuthModal({ isOpen, onClose, onSuccess, anchorRef }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
   const emailInputRef = useRef(null)
+  const modalRef = useRef(null)
 
   const { login, signup, isAnonymous, error: authError, clearError } = useAuthContext()
 
@@ -85,21 +87,56 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     initialFocusRef: emailInputRef,
   })
 
+  // Calculate position based on anchor element
+  useEffect(() => {
+    if (isOpen && anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect()
+      const modalWidth = 320 // min-w-80 = 320px
+      
+      // Position under the button, aligned to left edge
+      let left = rect.left
+      
+      // If it would go off the right edge of the screen, align to right instead
+      if (left + modalWidth > window.innerWidth) {
+        left = rect.right - modalWidth
+      }
+      
+      // Ensure it doesn't go off the left edge
+      left = Math.max(16, left)
+      
+      setPosition({
+        top: rect.bottom + 8, // 8px gap
+        left: left,
+        width: Math.max(rect.width, modalWidth),
+      })
+    }
+  }, [isOpen, anchorRef])
+
   if (!isOpen) return null
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={handleClose}
-    >
+    <>
+      {/* Backdrop */}
       <div
+        className="fixed inset-0 z-40 bg-black/20"
+        onClick={handleClose}
+      />
+      {/* Dropdown */}
+      <div
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl"
+        className="fixed z-50 rounded-xl border border-border bg-background-elevated shadow-xl p-4"
+        style={{
+          top: `${position.top}px`,
+          left: `${position.left}px`,
+          minWidth: '320px',
+          maxWidth: '400px',
+        }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 id="auth-modal-title" className="text-xl font-semibold text-foreground">
             {mode === 'login' ? 'Sign In' : isUpgradeMode ? 'Create Account' : 'Sign Up'}
           </h2>
@@ -214,7 +251,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
           </button>
         </div>
       </div>
-    </div>,
+    </>,
     document.body
   )
 }

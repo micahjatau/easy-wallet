@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useAuthContext } from '../../contexts/useAuthContext.js'
 import AuthModal from './AuthModal.jsx'
 
@@ -61,10 +61,13 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
     )
   }
 
+  const buttonRef = useRef(null)
+
   if (isAnonymous) {
     return (
       <>
         <button
+          ref={buttonRef}
           type="button"
           onClick={handleOpenAuth}
           className={`border border-border bg-background-elevated text-foreground hover:bg-background-muted transition-colors ${
@@ -83,6 +86,7 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
           isOpen={showAuthModal}
           onClose={handleCloseAuth}
           onSuccess={handleSuccess}
+          anchorRef={buttonRef}
         />
       </>
     )
