@@ -32,8 +32,18 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
     if (!isMenuOpen && authButtonRef.current) {
       const rect = authButtonRef.current.getBoundingClientRect()
       const menuWidth = 224 // w-56 = 14rem = 224px
+      const menuHeight = 140 // Approximate height of the menu
       
-      // Position under the button, aligned to left edge
+      // For compact mode (sidebar), position above the button
+      // For non-compact mode, position below the button
+      let top
+      if (compact) {
+        top = rect.top - menuHeight - 8 // 8px gap above
+      } else {
+        top = rect.bottom + 8 // 8px gap below
+      }
+      
+      // Position aligned to left edge
       let left = rect.left
       
       // If it would go off the right edge, align to right instead
@@ -45,12 +55,12 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
       left = Math.max(16, left)
       
       setMenuPosition({
-        top: rect.bottom + 8,
+        top: top,
         left: left,
       })
     }
     setIsMenuOpen((prev) => !prev)
-  }, [isMenuOpen])
+  }, [isMenuOpen, compact])
 
   const handleCloseMenu = useCallback(() => {
     setIsMenuOpen(false)
