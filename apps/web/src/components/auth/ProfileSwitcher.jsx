@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuthContext } from '../../contexts/useAuthContext.js'
 import AuthModal from './AuthModal.jsx'
 
 export default function ProfileSwitcher({ compact = false, fullWidth = false }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [menuPosition, setMenuPosition] = useState(null)
 
   const {
     user,
@@ -12,6 +14,9 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
     isLoading,
     logout,
   } = useAuthContext()
+
+  const buttonRef = useRef(null)
+  const authButtonRef = useRef(null)
 
   const displayEmail = useMemo(() => {
     if (isAnonymous) return 'Guest'
@@ -24,8 +29,28 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
   }, [isAnonymous, user])
 
   const handleToggleMenu = useCallback(() => {
+    if (!isMenuOpen && authButtonRef.current) {
+      const rect = authButtonRef.current.getBoundingClientRect()
+      const menuWidth = 224 // w-56 = 14rem = 224px
+      
+      // Position under the button, aligned to left edge
+      let left = rect.left
+      
+      // If it would go off the right edge, align to right instead
+      if (left + menuWidth > window.innerWidth - 16) {
+        left = rect.right - menuWidth
+      }
+      
+      // Ensure it doesn't go off the left edge
+      left = Math.max(16, left)
+      
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: left,
+      })
+    }
     setIsMenuOpen((prev) => !prev)
-  }, [])
+  }, [isMenuOpen])
 
   const handleCloseMenu = useCallback(() => {
     setIsMenuOpen(false)
@@ -61,8 +86,6 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
     )
   }
 
-  const buttonRef = useRef(null)
-
   if (isAnonymous) {
     return (
       <>
@@ -96,6 +119,7 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
     <>
       <div className="relative">
         <button
+          ref={authButtonRef}
           type="button"
           onClick={handleToggleMenu}
           className={`bg-background-muted/50 hover:bg-background-muted transition-colors ${
@@ -132,17 +156,18 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
           )}
         </button>
 
-        {isMenuOpen && (
+        {isMenuOpen && menuPosition && createPortal(
           <>
-            <div className="fixed inset-0 z-40" onClick={handleCloseMenu} />
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={handleCloseMenu}
+            />
             <div
-              className={`w-56 rounded-xl bg-background-elevated shadow-lg border border-border z-50 py-1 ${
-                compact
-                  ? 'absolute left-0 bottom-full mb-2'
-                  : fullWidth
-                    ? 'absolute left-0 bottom-full mb-2 w-full min-w-56'
-                    : 'absolute right-0 mt-2'
-              }`}
+              className="fixed z-50 w-56 rounded-xl bg-background-elevated shadow-lg border border-border py-1"
+              style={{
+                top: `${menuPosition.top}px`,
+                left: `${menuPosition.left}px`,
+              }}
             >
               <div className="px-4 py-2 border-b border-border">
                 <p className="text-sm font-medium text-foreground">{displayEmail}</p>
@@ -179,7 +204,8 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
                 </button>
               </div>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
 
@@ -187,6 +213,7 @@ export default function ProfileSwitcher({ compact = false, fullWidth = false }) 
         isOpen={showAuthModal}
         onClose={handleCloseAuth}
         onSuccess={handleSuccess}
+        anchorRef={buttonRef}
       />
     </>
   )
