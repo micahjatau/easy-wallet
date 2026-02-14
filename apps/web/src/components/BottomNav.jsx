@@ -38,7 +38,7 @@ const BottomNav = () => {
           <span className={`material-symbols-outlined text-[22px] ${isActive('/transactions') ? 'fill' : ''}`}>
             receipt_long
           </span>
-          <span className="text-[10px] font-medium">Txn</span>
+          <span className="text-[10px] font-medium">History</span>
         </NavLink>
 
         {/* Add (Center, Elevated) */}
