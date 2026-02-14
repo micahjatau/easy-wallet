@@ -20,7 +20,7 @@ const SettingsView = memo(function SettingsView({
   _onImportData,
   onClearData,
   user,
-  onLogout,
+  _onLogout,
   isDarkMode,
   onToggleDarkMode,
   transactions,
@@ -84,16 +84,6 @@ const SettingsView = memo(function SettingsView({
                 <div className="pt-1">
                   <ProfileSwitcher />
                 </div>
-                {onLogout && user && !user.isAnonymous && (
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-error/30 bg-error-background hover:bg-error-background/80 transition-colors text-error"
-                  >
-                    <span className="material-symbols-outlined">logout</span>
-                    Sign Out
-                  </button>
-                )}
               </div>
             </section>
           </div>
