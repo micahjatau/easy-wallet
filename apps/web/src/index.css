@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import './theme-colors.css';
 
 @tailwind base;
@@ -8,7 +8,7 @@
 :root {
   color: #333333;
   background-color: #FDF8F5;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -29,9 +29,9 @@ body {
 
 /* Design System Typography Classes */
 .font-display {
-  font-family: 'Instrument Serif', serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .font-body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }

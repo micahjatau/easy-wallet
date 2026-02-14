@@ -45,11 +45,11 @@ export default {
       },
       fontFamily: {
         // Pocket Ledger Design System
-        'display': ['"Instrument Serif"', 'serif'],
-        'sans': ['Inter', 'sans-serif'],
-        'serif': ['"Instrument Serif"', 'serif'],
+        'display': ['Poppins', 'sans-serif'],
+        'sans': ['Poppins', 'sans-serif'],
+        'serif': ['Poppins', 'sans-serif'],
         // Legacy fonts
-        'body': ['Inter', 'sans-serif'],
+        'body': ['Poppins', 'sans-serif'],
       },
       boxShadow: {
         soft: '0 20px 40px -30px rgba(27, 67, 50, 0.25)',
