@@ -4,9 +4,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import BaseCurrencyChangeDialog from '../components/BaseCurrencyChangeDialog.jsx'
 import DeleteBanner from '../components/DeleteBanner.jsx'
 import Layout from '../components/Layout.jsx'
+import MobileNavLayout from '../components/MobileNavLayout.jsx'
 import OfflineBanner from '../components/OfflineBanner.jsx'
 import TransactionForm from '../components/TransactionForm.jsx'
-import MobileShellView from './MobileShellView.jsx'
 
 // View components
 import DashboardView from './DashboardView.jsx'
@@ -72,6 +72,29 @@ const TransactionsPage = memo(function TransactionsPage({ activity, dialog }) {
         rangeLabel={activity?.rangeLabel}
         rateStatusLabel={activity?.rateStatusLabel}
       />
+    </PageTransition>
+  )
+})
+
+const AddTransactionPage = memo(function AddTransactionPage({ dashboard }) {
+  return (
+    <PageTransition>
+      <div className="max-w-2xl mx-auto">
+        <h1 className="font-display text-2xl text-foreground mb-6">Add Transaction</h1>
+        <TransactionForm
+          variant="mobile"
+          formState={dashboard?.formState}
+          formErrors={dashboard?.formErrors}
+          isEditing={dashboard?.isEditing}
+          accounts={dashboard?.accounts}
+          settings={dashboard?.settings}
+          rateMissingForForm={dashboard?.rateMissingForForm}
+          inputClass={dashboard?.inputClass}
+          onSubmit={dashboard?.handleSubmit}
+          onCancelEdit={dashboard?.handleCancelEdit}
+          setFormState={dashboard?.setFormState}
+        />
+      </div>
     </PageTransition>
   )
 })
@@ -152,7 +175,7 @@ const SettingsPage = memo(function SettingsPage({ layout, header, dialog, toolsP
         onClearOldData={privacyPayload?.handleClearOldData}
         onUpdatePrivacyRetention={privacyPayload?.handleUpdatePrivacyRetention}
         user={header?.profile}
-        onLogout={header?.onLogout}
+        _onLogout={header?.onLogout}
         transactions={privacyPayload?.transactions}
         accounts={privacyPayload?.accounts}
         includeDeletedExport={importPayload?.includeDeletedExport}
@@ -192,6 +215,58 @@ const SupportPage = memo(function SupportPage() {
   )
 })
 
+const AppRoutes = memo(function AppRoutes({
+  layout,
+  header,
+  deleteBanner,
+  dashboard,
+  activity,
+  tools,
+  connectivity,
+  dialog,
+}) {
+  const location = useLocation()
+
+  return (
+    <>
+      <DeleteBanner
+        deleteBanner={deleteBanner?.deleteBanner}
+        onUndo={deleteBanner?.handleUndoDelete}
+        onDismiss={deleteBanner?.handleDismissDeleteBanner}
+      />
+
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route 
+            path="/dashboard" 
+            element={<DashboardPage dashboard={dashboard} activity={activity} dialog={dialog} />} 
+          />
+          <Route 
+            path="/transactions" 
+            element={<TransactionsPage activity={activity} dialog={dialog} />} 
+          />
+          <Route 
+            path="/new" 
+            element={<AddTransactionPage dashboard={dashboard} />} 
+          />
+          <Route 
+            path="/tools" 
+            element={<ToolsPage toolsPayload={tools} />} 
+          />
+          <Route 
+            path="/settings" 
+            element={<SettingsPage layout={layout} header={header} dialog={dialog} toolsPayload={tools} />} 
+          />
+          <Route path="/support" element={<SupportPage />} />
+        </Routes>
+      </AnimatePresence>
+
+      <OfflineBanner isOnline={connectivity?.isOnline} />
+    </>
+  )
+})
+
 const AppShellView = ({
   layout,
   header,
@@ -199,12 +274,9 @@ const AppShellView = ({
   dashboard,
   activity,
   tools,
-  mobile,
   connectivity,
   dialog,
-  onAddTransaction,
 }) => {
-  const location = useLocation()
   const [showQuickAddModal, setShowQuickAddModal] = useState(false)
 
   // Prepare sidebar props
@@ -229,17 +301,21 @@ const AppShellView = ({
     dialog?.settings?.baseCurrency,
   ])
 
-  // Handle quick add button
+  // Handle quick add button (desktop only)
   const handleQuickAdd = useCallback(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setShowQuickAddModal(true)
-      return
-    }
+    setShowQuickAddModal(true)
+  }, [])
 
-    if (onAddTransaction) {
-      onAddTransaction()
-    }
-  }, [onAddTransaction])
+  const routeProps = {
+    layout,
+    header,
+    deleteBanner,
+    dashboard,
+    activity,
+    tools,
+    connectivity,
+    dialog,
+  }
 
   return (
     <Layout
@@ -248,46 +324,19 @@ const AppShellView = ({
       showQuickAdd={true}
       onQuickAdd={handleQuickAdd}
     >
-      {/* Mobile view */}
+      {/* Mobile view with bottom nav */}
       <div className="lg:hidden">
-        <MobileShellView {...mobile} />
+        <MobileNavLayout>
+          <AppRoutes {...routeProps} />
+        </MobileNavLayout>
       </div>
 
       {/* Desktop view with sidebar navigation and routing */}
       <div className="hidden lg:block">
-        <DeleteBanner
-          deleteBanner={deleteBanner?.deleteBanner}
-          onUndo={deleteBanner?.handleUndoDelete}
-          onDismiss={deleteBanner?.handleDismissDeleteBanner}
-        />
-
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route 
-              path="/dashboard" 
-              element={<DashboardPage dashboard={dashboard} activity={activity} dialog={dialog} />} 
-            />
-            <Route 
-              path="/transactions" 
-              element={<TransactionsPage activity={activity} dialog={dialog} />} 
-            />
-            <Route 
-              path="/tools" 
-              element={<ToolsPage toolsPayload={tools} />} 
-            />
-            <Route 
-              path="/settings" 
-              element={<SettingsPage layout={layout} header={header} dialog={dialog} toolsPayload={tools} />} 
-            />
-            <Route path="/support" element={<SupportPage />} />
-          </Routes>
-        </AnimatePresence>
-
-        <OfflineBanner isOnline={connectivity?.isOnline} />
+        <AppRoutes {...routeProps} />
       </div>
 
-      {/* Dialogs */}
+      {/* Desktop Quick Add Modal */}
       {showQuickAddModal ? (
         <div
           className="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 lg:flex"

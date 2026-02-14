@@ -6,7 +6,6 @@ export const useFormActions = ({
   setFormErrors,
   setFormState,
   setFilters,
-  setActiveView,
   setIsDarkMode,
 }) => {
   const handleCancelEdit = useCallback(() => {
@@ -42,13 +41,6 @@ export const useFormActions = ({
     })
   }, [setFilters])
 
-  const handleSetView = useCallback((nextView) => {
-    setActiveView(nextView)
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }, [setActiveView])
-
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev) => !prev)
   }, [setIsDarkMode])
@@ -56,7 +48,6 @@ export const useFormActions = ({
   return {
     handleCancelEdit,
     handleClearFilters,
-    handleSetView,
     toggleDarkMode,
   }
 }

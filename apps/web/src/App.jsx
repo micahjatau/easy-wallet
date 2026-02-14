@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import AppShellView from './views/AppShellView.jsx'
 
 import { useAuthContext } from './contexts/useAuthContext.js'
@@ -24,9 +26,7 @@ import { useSync } from './hooks/useSync.js'
 import { useImportExportActions } from './hooks/useImportExportActions.js'
 import { useUiLabels } from './hooks/useUiLabels.js'
 import { useToolsPayload } from './hooks/useToolsPayload.js'
-import { useToolsSections } from './hooks/useToolsSections.jsx'
 import { useTransactionActions } from './hooks/useTransactionActions.js'
-import { useViewState } from './hooks/useViewState.js'
 import { useVersioningDataState } from './hooks/useVersioningDataState.js'
 import { useVersioningSyncActions } from './hooks/useVersioningSyncActions.js'
 import {
@@ -45,6 +45,8 @@ import {
 
 
 function AppInner() {
+  const navigate = useNavigate()
+
   const getInitialDarkMode = () => {
     if (typeof window === 'undefined') return false
     try {
@@ -151,11 +153,27 @@ function AppInner() {
   const [accountError, setAccountError] = useState('')
   const [currencyInput, setCurrencyInput] = useState('')
   const [currencyError, setCurrencyError] = useState('')
-  const [activeView, setActiveView] = useState('activity')
   const [includeDeletedExport, setIncludeDeletedExport] = useState(false)
   const [importError, setImportError] = useState('')
   const [importPreview, setImportPreview] = useState(null)
   const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode)
+
+  const handleSetView = useCallback(
+    (nextView) => {
+      const routeMap = {
+        activity: '/dashboard',
+        new: '/new',
+        snapshot: '/dashboard',
+        tools: '/tools',
+      }
+      const nextRoute = routeMap[nextView] || '/dashboard'
+      navigate(nextRoute)
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    [navigate],
+  )
 
   const {
     auditLogs,
@@ -174,14 +192,12 @@ function AppInner() {
   const {
     handleCancelEdit,
     handleClearFilters,
-    handleSetView,
     toggleDarkMode,
   } = useFormActions({
     setEditingId,
     setFormErrors,
     setFormState,
     setFilters,
-    setActiveView,
     setIsDarkMode,
   })
 
@@ -421,7 +437,7 @@ function AppInner() {
     setSettings,
     setTransactions,
     setAccounts,
-    setActiveView,
+    setActiveView: handleSetView,
     success,
     info,
     queueChange,
@@ -440,12 +456,7 @@ function AppInner() {
     transactions,
   })
 
-  const {
-    showActivity,
-    showNew,
-    showSnapshot,
-    showTools,
-  } = useViewState(activeView)
+
 
   const {
     todayLabel,
@@ -528,16 +539,14 @@ function AppInner() {
     isResolvingConflict,
   })
 
-  const { desktopToolsSections, mobileToolsSections } = useToolsSections(toolsPayload)
-
   return (
-    <AppShellView
-      layout={{
-        isDarkMode,
-        activeView,
-        handleSetView,
-        toggleDarkMode,
-      }}
+    <>
+      <SpeedInsights />
+      <AppShellView
+        layout={{
+          isDarkMode,
+          toggleDarkMode,
+        }}
       header={{
         APP_NAME,
         syncStatusLabel,
@@ -602,8 +611,6 @@ function AppInner() {
         handleRestore,
       }}
       tools={{
-        desktopToolsSections,
-        mobileToolsSections,
         isDarkMode,
         accountsPayload: toolsPayload.accountsPayload,
         categoriesPayload: toolsPayload.categoriesPayload,
@@ -612,41 +619,6 @@ function AppInner() {
         privacyPayload: toolsPayload.privacyPayload,
         versioningPayload: toolsPayload.versioningPayload,
         syncPayload: toolsPayload.syncPayload,
-      }}
-      mobile={{
-        showActivity,
-        showNew,
-        showSnapshot,
-        showTools,
-        filters,
-        accounts,
-        allCategories,
-        inputClass,
-        filteredTransactions,
-        transactions,
-        rateStatusLabel,
-        hasFilters,
-        rangeLabel,
-        rangeShortLabel,
-        handleClearFilters,
-        handleDateRangeModeChange,
-        setFilters,
-        settings,
-        accountNameById,
-        getCategoryAccent,
-        handleEdit,
-        handleDelete,
-        handleRestore,
-        formState,
-        formErrors,
-        isEditing,
-        rateMissingForForm,
-        handleSubmit,
-        handleCancelEdit,
-        setFormState,
-        balance,
-        totals,
-        mobileToolsSections,
       }}
       connectivity={{ isOnline }}
       dialog={{
@@ -658,8 +630,8 @@ function AppInner() {
         setShowBaseCurrencyDialog,
         setPendingBaseCurrency,
       }}
-      onAddTransaction={() => handleSetView('new')}
     />
+  </>
   )
 }
 

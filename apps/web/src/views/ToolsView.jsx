@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { Link } from 'react-router-dom'
 import AccountsManager from '../components/AccountsManager.jsx'
 import CategoryManager from '../components/CategoryManager.jsx'
 import CurrencyTools from '../components/CurrencyTools.jsx'
@@ -167,6 +168,39 @@ const ToolsView = memo(function ToolsView({
               importError={importError}
               className={compactCardClass}
             />
+          </div>
+        </section>
+
+        {/* Support Section */}
+        <section className="rounded-2xl border border-border bg-background-elevated/50 p-1 xl:col-span-2">
+          <div className="p-4 pb-2">
+            <h2 className="font-semibold text-foreground flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">help</span>
+              Support & Feedback
+            </h2>
+            <p className="text-sm text-foreground-muted mt-1">
+              Need help or want to report an issue?
+            </p>
+          </div>
+          <div className="p-4 pt-2">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                to="/support"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-background-elevated border border-border px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-background-muted"
+              >
+                <span className="material-symbols-outlined text-base">help_outline</span>
+                Get Help
+              </Link>
+              <a
+                href="https://github.com/micahjatau/easy-wallet/issues/new/choose"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+              >
+                <span className="material-symbols-outlined text-base">open_in_new</span>
+                Report Issue
+              </a>
+            </div>
           </div>
         </section>
       </div>

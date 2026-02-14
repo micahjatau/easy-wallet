@@ -66,7 +66,6 @@ const Layout = ({
         </main>
       </div>
 
-      {/* Quick Add Button */}
       {showQuickAdd && (
         <QuickAddButton onClick={onQuickAdd} isDarkMode={isDarkMode} />
       )}

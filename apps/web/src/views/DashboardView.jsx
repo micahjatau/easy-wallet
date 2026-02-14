@@ -2,6 +2,8 @@ import { memo, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { formatMoney } from '../lib/formatters.js'
 import EmptyState from '../components/EmptyState.jsx'
+import ProfileSwitcher from '../components/auth/ProfileSwitcher.jsx'
+import { APP_NAME } from '../lib/ledgerConfig.js'
 
 // Stat Card Component
 const StatCard = memo(function StatCard({ title, amount, currency, icon, trend }) {
@@ -96,6 +98,28 @@ const DashboardView = memo(function DashboardView({
 
   return (
     <div className="space-y-6">
+      <section className="lg:hidden rounded-2xl border border-border bg-background-elevated p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
+              <h1 className="font-display text-xl text-foreground">{APP_NAME}</h1>
+            </div>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-foreground-muted">
+              Dashboard
+            </p>
+          </div>
+          <ProfileSwitcher />
+        </div>
+      </section>
+
+      <section className="hidden lg:block">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-foreground-muted">
+          Dashboard
+        </p>
+        <h2 className="mt-1 font-display text-3xl text-foreground">Financial Overview</h2>
+      </section>
+
       {/* Balance Section - Large and prominent */}
       <div className="rounded-3xl border border-border bg-background-elevated p-8 shadow-lg">
         <p className="text-sm text-foreground-muted uppercase tracking-wider mb-2">Total Balance</p>

@@ -5,7 +5,7 @@ const QuickAddButton = memo(function QuickAddButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/40 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center group"
+      className="fixed bottom-6 right-6 z-50 hidden h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-200 group hover:scale-105 hover:bg-primary-hover hover:shadow-xl hover:shadow-primary/40 active:scale-95 lg:flex"
       aria-label="Add transaction"
       title="Add transaction"
     >
