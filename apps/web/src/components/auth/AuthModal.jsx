@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuthContext } from '../../contexts/useAuthContext.js'
 import { useDialogA11y } from '../../hooks/useDialogA11y.js'
 import PasswordInput from './PasswordInput.jsx'
@@ -86,7 +87,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
       onClick={handleClose}
@@ -213,6 +214,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
