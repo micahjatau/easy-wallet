@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import AppShellView from './views/AppShellView.jsx'
@@ -32,13 +32,14 @@ import { useVersioningSyncActions } from './hooks/useVersioningSyncActions.js'
 import {
   useStorageState,
 } from './hooks/useStorageState.js'
-import { getRateForCurrency } from '@easy-ledger/core'
+import { filterTransactions, getRateForCurrency } from '@easy-ledger/core'
 import { formatDate, formatTimestamp } from './lib/formatters.js'
 import { APP_NAME } from './lib/ledgerConfig.js'
 import {
   getCategoryAccent,
   getDefaultCustomDates,
   getDefaultFormState,
+  getThisMonthRange,
   getToday,
 } from './lib/appUtils.js'
 
@@ -362,7 +363,6 @@ function AppInner() {
 
   const {
     totals,
-    categoryData,
     categoryTotal,
     topCategory,
     topCategoryPercent,
@@ -372,7 +372,25 @@ function AppInner() {
     allCategories,
   })
 
-  const balance = totals.balance
+  const dashboardRangeTransactions = useMemo(
+    () =>
+      filterTransactions(transactions, {
+        range: getThisMonthRange(),
+        includeDeleted: false,
+      }),
+    [transactions],
+  )
+
+  const {
+    totals: dashboardTotals,
+    categoryData: dashboardCategoryData,
+  } = useCategoryAnalytics({
+    rangeTransactions: dashboardRangeTransactions,
+    settings,
+    allCategories,
+  })
+
+  const dashboardBalance = dashboardTotals.balance
 
   const {
     handleExportJson,
@@ -400,6 +418,7 @@ function AppInner() {
     success,
     info,
     queueChange,
+    refreshRates,
   })
 
   const {
@@ -535,6 +554,9 @@ function AppInner() {
     setSyncInterval,
     hasConflicts,
     conflicts,
+    handleManualSync,
+    syncState,
+    isOnline,
     handleResolveConflict,
     isResolvingConflict,
   })
@@ -570,8 +592,8 @@ function AppInner() {
         handleDismissDeleteBanner,
       }}
       dashboard={{
-        balance,
-        totals,
+        balance: dashboardBalance,
+        totals: dashboardTotals,
         settings,
         rangeShortLabel,
         formState,
@@ -583,14 +605,20 @@ function AppInner() {
         handleSubmit,
         handleCancelEdit,
         setFormState,
-        categoryData,
+        categoryData: dashboardCategoryData,
         categoryTotal,
         topCategory,
         topCategoryPercent,
-        transactions,
+        transactions: dashboardRangeTransactions,
+        onManualSync: handleManualSync,
+        syncState,
+        isOnline,
         info,
       }}
       activity={{
+        activeRange,
+        dateRangeMode: filters.dateRangeMode,
+        rangeShortLabel,
         filters,
         accounts,
         allCategories,

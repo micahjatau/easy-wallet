@@ -36,6 +36,7 @@ export const useImportExportActions = ({
   success,
   info,
   queueChange,
+  refreshRates,
 }) => {
   const handleExportJson = useCallback(() => {
     const payload = {
@@ -221,6 +222,11 @@ export const useImportExportActions = ({
     setFormState((prev) =>
       getDefaultFormState(nextSettings.baseCurrency, nextAccounts[0]?.id, prev.type),
     )
+    refreshRates?.({
+      baseCurrency: nextSettings.baseCurrency,
+      currencies: nextSettings.currencies,
+      transactions: nextTransactions,
+    })
     queueChange?.()
     success(`Import successful! ${nextTransactions.length} transactions imported.`)
   }, [
@@ -239,6 +245,7 @@ export const useImportExportActions = ({
     setImportError,
     setImportPreview,
     setFormState,
+    refreshRates,
     success,
     info,
     queueChange,

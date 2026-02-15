@@ -49,6 +49,9 @@ const SettingsView = memo(function SettingsView({
   onChangeInterval,
   hasConflicts,
   conflicts,
+  onManualSync,
+  syncState,
+  isOnline,
   onResolve,
   isResolving,
 }) {
@@ -227,6 +230,9 @@ const SettingsView = memo(function SettingsView({
                   onChangeInterval={onChangeInterval}
                   hasConflicts={hasConflicts}
                   conflicts={conflicts}
+                  onManualSync={onManualSync}
+                  syncState={syncState}
+                  isOnline={isOnline}
                   onResolve={onResolve}
                   isResolving={isResolving}
                 />

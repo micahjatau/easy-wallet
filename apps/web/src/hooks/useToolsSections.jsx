@@ -85,6 +85,9 @@ export const useToolsSections = ({
     setSyncInterval,
     hasConflicts,
     conflicts,
+    handleManualSync,
+    syncState,
+    isOnline,
     handleResolveConflict,
     isResolvingConflict,
   } = syncPayload
@@ -209,6 +212,9 @@ export const useToolsSections = ({
             onChangeInterval={setSyncInterval}
             hasConflicts={hasConflicts}
             conflicts={conflicts}
+            onManualSync={handleManualSync}
+            syncState={syncState}
+            isOnline={isOnline}
             onResolve={handleResolveConflict}
             isResolving={isResolvingConflict}
           />
@@ -272,6 +278,9 @@ export const useToolsSections = ({
       setSyncInterval,
       hasConflicts,
       conflicts,
+      handleManualSync,
+      syncState,
+      isOnline,
       handleResolveConflict,
       isResolvingConflict,
     ],
@@ -395,6 +404,9 @@ export const useToolsSections = ({
             onChangeInterval={setSyncInterval}
             hasConflicts={hasConflicts}
             conflicts={conflicts}
+            onManualSync={handleManualSync}
+            syncState={syncState}
+            isOnline={isOnline}
             onResolve={handleResolveConflict}
             isResolving={isResolvingConflict}
           />
@@ -458,6 +470,9 @@ export const useToolsSections = ({
       setSyncInterval,
       hasConflicts,
       conflicts,
+      handleManualSync,
+      syncState,
+      isOnline,
       handleResolveConflict,
       isResolvingConflict,
     ],

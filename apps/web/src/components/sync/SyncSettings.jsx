@@ -12,8 +12,12 @@ export default function SyncSettings({
   syncInterval,
   onToggleAutoSync,
   onChangeInterval,
+  onManualSync,
+  syncState,
+  isOnline,
 }) {
   const [showStorageInfo, setShowStorageInfo] = useState(false)
+  const isSyncing = syncState === 'syncing'
 
   return (
     <div className="space-y-4">
@@ -51,6 +55,26 @@ export default function SyncSettings({
             </select>
           </div>
         )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-foreground-muted">Run a backup immediately.</p>
+            <button
+              type="button"
+              onClick={onManualSync}
+              disabled={!isOnline || isSyncing}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-base">
+                {isSyncing ? 'sync' : 'cloud_upload'}
+              </span>
+              {isSyncing ? 'Backing up...' : 'Back Up Now'}
+            </button>
+          </div>
+          {!isOnline ? (
+            <p className="mt-2 text-xs text-warning">You are offline. Reconnect to run manual backup.</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="rounded-lg border border-border p-4 bg-background">

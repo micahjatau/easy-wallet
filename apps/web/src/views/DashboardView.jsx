@@ -3,9 +3,29 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { toBaseAmount } from '@easy-ledger/core'
 import { parseDateLocal } from '../lib/dateValidation.js'
 import { formatMoney } from '../lib/formatters.js'
+import { getRangeEndDisplay, getThisMonthRange } from '../lib/appUtils.js'
 import EmptyState from '../components/EmptyState.jsx'
 import ProfileSwitcher from '../components/auth/ProfileSwitcher.jsx'
 import { APP_NAME } from '../lib/ledgerConfig.js'
+
+const formatLastSynced = (value) => {
+  if (!value) return 'Never'
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Never'
+
+  const datePart = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  })
+  const timePart = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+
+  return `${datePart}, ${timePart}`
+}
 
 // Stat Card Component
 const StatCard = memo(function StatCard({ title, amount, currency, icon, trend }) {
@@ -73,95 +93,99 @@ const DashboardView = memo(function DashboardView({
   baseCurrency,
   filteredTransactions,
   transactions,
+  categoryData,
+  onManualSync,
+  syncState,
+  isOnline,
   accounts,
   settings,
   _onEdit,
   _onDelete,
   _onRestore,
 }) {
+  const isSyncing = syncState === 'syncing'
   const recentTransactions = filteredTransactions?.slice(0, 5) || []
 
-  // Prepare chart data - last 7 days spending by category
-  const chartData = useMemo(() => {
-    if (!filteredTransactions || filteredTransactions.length === 0) return []
-    
-    const last7Days = filteredTransactions
-      .filter(t => t.type === 'expense')
-      .slice(0, 20)
-      .reduce((acc, t) => {
-        const category = t.category || 'Other'
-        acc[category] = (acc[category] || 0) + t.amount
-        return acc
-      }, {})
-    
-    return Object.entries(last7Days)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
-  }, [filteredTransactions])
+  const chartData = useMemo(
+    () => (Array.isArray(categoryData?.data) ? categoryData.data : []),
+    [categoryData],
+  )
 
   const { incomeTrend, expenseTrend, netTrend } = useMemo(() => {
     if (!Array.isArray(transactions) || transactions.length === 0) {
       return { incomeTrend: null, expenseTrend: null, netTrend: null }
     }
 
-    const now = new Date()
-    const currentStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const currentEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const previousEnd = currentStart
-
-    const totalsByPeriod = transactions.reduce(
-      (accumulator, transaction) => {
-        if (!transaction || transaction.isDeleted) return accumulator
-
-        const txDate = parseDateLocal(transaction.date)
-        if (!txDate) return accumulator
-
-        const baseAmount = toBaseAmount(
-          Number(transaction.amount),
-          transaction.currency,
-          settings?.baseCurrency,
-          settings?.rates || {},
-        )
-        if (!Number.isFinite(baseAmount)) return accumulator
-
-        const isCurrent = txDate >= currentStart && txDate < currentEnd
-        const isPrevious = txDate >= previousStart && txDate < previousEnd
-        if (!isCurrent && !isPrevious) return accumulator
-
-        const key = isCurrent ? 'current' : 'previous'
-        if (transaction.type === 'income') {
-          accumulator[key].income += baseAmount
-        } else {
-          accumulator[key].expense += baseAmount
-        }
-
-        return accumulator
-      },
-      {
-        current: { income: 0, expense: 0 },
-        previous: { income: 0, expense: 0 },
-      },
+    const currentRange = getThisMonthRange()
+    const currentStart = currentRange.start
+    const currentEnd = currentRange.end || new Date()
+    const durationMs = Math.max(
+      currentEnd.getTime() - currentStart.getTime(),
+      24 * 60 * 60 * 1000,
     )
+    const previousEnd = currentStart
+    const previousStart = new Date(previousEnd.getTime() - durationMs)
 
-    const currentNet = totalsByPeriod.current.income - totalsByPeriod.current.expense
-    const previousNet = totalsByPeriod.previous.income - totalsByPeriod.previous.expense
+    const accumulateTotals = (rangeStart, rangeEnd) =>
+      transactions.reduce(
+        (accumulator, transaction) => {
+          if (!transaction || transaction.isDeleted) return accumulator
+
+          const txDate = parseDateLocal(transaction.date)
+          if (!txDate) return accumulator
+
+          const baseAmount = toBaseAmount(
+            Number(transaction.amount),
+            transaction.currency,
+            settings?.baseCurrency,
+            settings?.rates || {},
+          )
+          if (!Number.isFinite(baseAmount)) return accumulator
+
+          const inRange = txDate >= rangeStart && txDate < rangeEnd
+          if (!inRange) return accumulator
+
+          if (transaction.type === 'income') {
+            accumulator.income += baseAmount
+          } else {
+            accumulator.expense += baseAmount
+          }
+
+          return accumulator
+        },
+        { income: 0, expense: 0 },
+      )
+
+    const currentTotals = accumulateTotals(currentStart, currentEnd)
+    const previousTotals = accumulateTotals(previousStart, previousEnd)
+
+    const currentNet = currentTotals.income - currentTotals.expense
+    const previousNet = previousTotals.income - previousTotals.expense
 
     const getChange = (current, previous) => {
       if (!Number.isFinite(previous) || previous === 0) {
         if (!Number.isFinite(current) || current === 0) return 0
-        return 100
+        return null
       }
       return Math.round(((current - previous) / Math.abs(previous)) * 100)
     }
 
     return {
-      incomeTrend: getChange(totalsByPeriod.current.income, totalsByPeriod.previous.income),
-      expenseTrend: getChange(totalsByPeriod.current.expense, totalsByPeriod.previous.expense),
+      incomeTrend: getChange(currentTotals.income, previousTotals.income),
+      expenseTrend: getChange(currentTotals.expense, previousTotals.expense),
       netTrend: getChange(currentNet, previousNet),
     }
   }, [transactions, settings?.baseCurrency, settings?.rates])
+
+  const asOfDateLabel = useMemo(() => {
+    const thisMonthRange = getThisMonthRange()
+    const asOf = getRangeEndDisplay(thisMonthRange.end) || new Date()
+    return asOf.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    })
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -175,8 +199,24 @@ const DashboardView = memo(function DashboardView({
             <p className="mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-foreground-muted">
               Dashboard
             </p>
+            <p className="mt-1 text-xs text-foreground-subtle">
+              Last synced {formatLastSynced(settings?.syncedAt)}
+            </p>
           </div>
-          <ProfileSwitcher />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onManualSync}
+              disabled={!isOnline || isSyncing}
+              className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-sm">
+                {isSyncing ? 'sync' : 'cloud_upload'}
+              </span>
+              {isSyncing ? 'Syncing...' : 'Sync now'}
+            </button>
+            <ProfileSwitcher />
+          </div>
         </div>
       </section>
 
@@ -185,6 +225,22 @@ const DashboardView = memo(function DashboardView({
           Dashboard
         </p>
         <h2 className="mt-1 font-display text-3xl text-foreground">Financial Overview</h2>
+        <div className="mt-2 flex items-center gap-3">
+          <p className="text-sm text-foreground-subtle">
+            Last synced {formatLastSynced(settings?.syncedAt)}
+          </p>
+          <button
+            type="button"
+            onClick={onManualSync}
+            disabled={!isOnline || isSyncing}
+            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">
+              {isSyncing ? 'sync' : 'cloud_upload'}
+            </span>
+            {isSyncing ? 'Syncing...' : 'Sync now'}
+          </button>
+        </div>
       </section>
 
       {/* Balance Section - Large and prominent */}
@@ -194,7 +250,7 @@ const DashboardView = memo(function DashboardView({
           {formatMoney(balance, baseCurrency)}
         </h1>
         <p className="text-foreground-muted">
-          As of {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          As of {asOfDateLabel}
         </p>
       </div>
 

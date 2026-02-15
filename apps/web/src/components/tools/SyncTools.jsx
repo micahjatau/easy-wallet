@@ -8,6 +8,9 @@ const SyncTools = ({
   onChangeInterval,
   hasConflicts,
   conflicts,
+  onManualSync,
+  syncState,
+  isOnline,
   onResolve,
   isResolving,
 }) => (
@@ -17,6 +20,9 @@ const SyncTools = ({
       syncInterval={syncInterval}
       onToggleAutoSync={onToggleAutoSync}
       onChangeInterval={onChangeInterval}
+      onManualSync={onManualSync}
+      syncState={syncState}
+      isOnline={isOnline}
     />
     {hasConflicts && (
       <ConflictResolver

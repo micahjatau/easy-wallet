@@ -45,8 +45,14 @@ export const useRates = ({ settings, setSettings, activeTransactions }) => {
 
   const refreshRates = useCallback(
     async (baseOverride, isRetry = false) => {
+      const options =
+        baseOverride && typeof baseOverride === 'object' && !Array.isArray(baseOverride)
+          ? baseOverride
+          : null
       const baseCurrency = normalizeCurrency(
-        typeof baseOverride === 'string' ? baseOverride : settings.baseCurrency,
+        typeof baseOverride === 'string'
+          ? baseOverride
+          : options?.baseCurrency || settings.baseCurrency,
       )
       if (!isValidCurrency(baseCurrency)) {
         setRateStatus({ loading: false, error: 'Invalid base currency.' })
@@ -54,16 +60,23 @@ export const useRates = ({ settings, setSettings, activeTransactions }) => {
         retryCountRef.current = 0
         return
       }
+
+      const sourceTransactions = Array.isArray(options?.transactions)
+        ? options.transactions
+        : activeTransactions
+      const sourceCurrencies = Array.isArray(options?.currencies)
+        ? options.currencies
+        : settings.currencies
       
       const transactionCurrencies = Array.from(
         new Set(
-          activeTransactions
+          sourceTransactions
             .map((transaction) => normalizeCurrency(transaction.currency))
             .filter((currency) => isValidCurrency(currency)),
         ),
       )
       const currenciesToUpdate = Array.from(
-        new Set([...settings.currencies, ...transactionCurrencies, baseCurrency]),
+        new Set([...sourceCurrencies, ...transactionCurrencies, baseCurrency]),
       )
       
       const requestId = rateRequestRef.current + 1
